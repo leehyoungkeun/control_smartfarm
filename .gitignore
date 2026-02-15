@@ -1,0 +1,38 @@
+# 의존성
+node_modules/
+
+# 환경변수
+.env
+.env.local
+.env.production
+
+# 빌드 결과물
+dist/
+build/
+
+# SQLite 데이터베이스
+*.db
+*.db-wal
+*.db-shm
+data/
+
+# AWS IoT 인증서
+certs/
+*.pem
+*.pem.crt
+*.pem.key
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+logs/
+*.log
+
+# Node-RED
+node-red/.node-red/
