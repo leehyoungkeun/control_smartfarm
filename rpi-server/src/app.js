@@ -6,6 +6,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const path = require('path');
 const routes = require('./routes');
 const internalRoutes = require('./routes/internal');
@@ -16,6 +17,7 @@ const app = express();
 // 미들웨어
 app.use(helmet());
 app.use(cors());
+app.use(morgan('short'));
 app.use(express.json());
 
 // 정적 파일 서빙 (터치패널용 프론트엔드)
