@@ -4,7 +4,11 @@
  * DailySummary 및 DailyValveFlow 데이터를 MQTT를 통해 발행
  */
 const { publish, getFarmTopics, getConnectionStatus } = require('./mqttService');
-const { DailySummary, DailyValveFlow } = require('../models');
+const { DailySummary, DailyValveFlow, SensorData, AlarmLog } = require('../models');
+
+// 데이터 보관 기간 (일)
+const SENSOR_RETENTION_DAYS = 30;  // 센서 데이터: 30일
+const ALARM_RETENTION_DAYS = 90;   // 알람 로그: 90일
 
 let timeoutId = null;
 
@@ -121,8 +125,28 @@ async function syncDailySummary() {
     });
 
     console.log(`일일 동기화 완료: ${dateStr} (${summaries.length}개 프로그램)`);
+
+    // 오래된 데이터 자동 정리
+    cleanupOldData();
   } catch (error) {
     console.error('일일 동기화 오류:', error);
+  }
+}
+
+/**
+ * 오래된 데이터 자동 정리
+ * sensor_data: 30일, alarm_log: 90일 초과 데이터 삭제
+ */
+function cleanupOldData() {
+  try {
+    const sensorDeleted = SensorData.deleteOlderThan(SENSOR_RETENTION_DAYS);
+    const alarmDeleted = AlarmLog.deleteOlderThan(ALARM_RETENTION_DAYS);
+
+    if (sensorDeleted > 0 || alarmDeleted > 0) {
+      console.log(`데이터 정리 완료: 센서 ${sensorDeleted}건, 알람 ${alarmDeleted}건 삭제`);
+    }
+  } catch (error) {
+    console.error('데이터 정리 오류:', error);
   }
 }
 

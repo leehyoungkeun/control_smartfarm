@@ -40,5 +40,17 @@ module.exports = (db) => {
       db.prepare(
         'SELECT * FROM sensor_data ORDER BY recorded_at DESC LIMIT ?'
       ).all(count),
+
+    /**
+     * 오래된 센서 데이터 삭제
+     * @param {number} days - 보관 일수 (이보다 오래된 데이터 삭제)
+     * @returns {number} 삭제된 행 수
+     */
+    deleteOlderThan: (days) => {
+      const result = db.prepare(
+        `DELETE FROM sensor_data WHERE recorded_at < datetime('now', 'localtime', ?)`
+      ).run(`-${days} days`);
+      return result.changes;
+    },
   };
 };
