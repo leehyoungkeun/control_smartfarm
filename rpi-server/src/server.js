@@ -7,8 +7,9 @@ const http = require('http');
 const app = require('./app');
 const { initWsService } = require('./services/wsService');
 const { initMqttService } = require('./services/mqttService');
-const { startHeartbeat } = require('./services/heartbeatService');
-const { startDailySync } = require('./services/dailySyncService');
+const { startHeartbeat, stopHeartbeat } = require('./services/heartbeatService');
+const { startDailySync, stopDailySync } = require('./services/dailySyncService');
+const { db } = require('./models');
 
 const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
@@ -46,3 +47,40 @@ async function start() {
 }
 
 start();
+
+/**
+ * Graceful Shutdown
+ * SIGTERM/SIGINT 수신 시 서비스를 순서대로 정리 후 종료
+ */
+function shutdown(signal) {
+  console.log(`\n${signal} 수신 — 서버 종료 중...`);
+
+  // 1. 스케줄 서비스 중지
+  stopHeartbeat();
+  stopDailySync();
+
+  // 2. HTTP 서버 종료 (새 연결 거부, 기존 연결 완료 대기)
+  server.close(() => {
+    console.log('HTTP 서버 종료 완료');
+
+    // 3. SQLite 데이터베이스 닫기
+    try {
+      db.close();
+      console.log('SQLite 데이터베이스 닫기 완료');
+    } catch (e) {
+      // 이미 닫혔을 수 있음
+    }
+
+    console.log('서버 정상 종료');
+    process.exit(0);
+  });
+
+  // 5초 내 종료되지 않으면 강제 종료
+  setTimeout(() => {
+    console.error('종료 타임아웃 — 강제 종료');
+    process.exit(1);
+  }, 5000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
