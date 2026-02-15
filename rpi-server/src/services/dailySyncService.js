@@ -4,7 +4,7 @@
  * DailySummary 및 DailyValveFlow 데이터를 MQTT를 통해 발행
  */
 const { publish, getFarmTopics, getConnectionStatus } = require('./mqttService');
-const { DailySummary, DailyValveFlow, SensorData, AlarmLog } = require('../models');
+const { db, DailySummary, DailyValveFlow, SensorData, AlarmLog } = require('../models');
 
 // 데이터 보관 기간 (일)
 const SENSOR_RETENTION_DAYS = 30;  // 센서 데이터: 30일
@@ -144,6 +144,10 @@ function cleanupOldData() {
 
     if (sensorDeleted > 0 || alarmDeleted > 0) {
       console.log(`데이터 정리 완료: 센서 ${sensorDeleted}건, 알람 ${alarmDeleted}건 삭제`);
+      // 삭제 후 디스크 공간 회수
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.exec('VACUUM');
+      console.log('SQLite VACUUM 완료');
     }
   } catch (error) {
     console.error('데이터 정리 오류:', error);
