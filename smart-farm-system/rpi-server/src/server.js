@@ -28,6 +28,10 @@ async function start() {
       console.warn('⚠️  MQTT 초기화 실패 (오프라인 모드):', mqttError.message);
     }
 
+    // 2-1. 온디맨드 텔레메트리 발행 서비스 등록 (MQTT 연결과 무관하게 등록)
+    require('./services/publisherService');
+    console.log('✅ 텔레메트리 발행 서비스 등록 완료');
+
     // 3. 하트비트 서비스 시작 (60초마다)
     startHeartbeat();
     console.log('✅ 하트비트 서비스 시작');

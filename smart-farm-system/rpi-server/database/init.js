@@ -78,7 +78,33 @@ addColumn('system_config', 'alarm_ph_lower', 'REAL', '4.5');
 addColumn('system_config', 'alarm_temp_upper', 'REAL', '40');
 addColumn('system_config', 'alarm_temp_lower', 'REAL', '5');
 
-// 관수 프로그램 테이블 (6개 프로그램)
+// 양액제어 설정 컬럼
+addColumn('system_config', 'scenario_count', 'INTEGER', '6');
+addColumn('system_config', 'auto_supply', 'INTEGER', '1');
+addColumn('system_config', 'bulk_ec_threshold', 'REAL', '0.5');
+addColumn('system_config', 'bulk_ph_threshold', 'REAL', '0.5');
+addColumn('system_config', 'deadband_ec', 'REAL', '0.05');
+addColumn('system_config', 'deadband_ph', 'REAL', '0.05');
+
+// 하드웨어 설정 컬럼
+addColumn('system_config', 'tank_count', 'INTEGER', '6');
+addColumn('system_config', 'valve_count', 'INTEGER', '14');
+addColumn('system_config', 'tank_config', 'TEXT', "'[]'");
+
+// 경보 작동 하한 컬럼
+addColumn('system_config', 'operation_ec_lower', 'REAL', '0.1');
+addColumn('system_config', 'operation_ph_lower', 'REAL', '6.5');
+
+// 설비/시스템 설정 컬럼
+addColumn('system_config', 'acid_type', 'TEXT', "'산'");
+addColumn('system_config', 'flow_unit', 'TEXT', "'10L'");
+addColumn('system_config', 'min_solar_radiation', 'REAL', '50');
+addColumn('system_config', 'agitator_on_time', 'TEXT', "'00:30'");
+addColumn('system_config', 'agitator_off_time', 'TEXT', "'50:00'");
+addColumn('system_config', 'raw_water_temp_setting', 'REAL', '0');
+addColumn('system_config', 'outdoor_temp_setting', 'REAL', '0');
+
+// 관수 프로그램 테이블 (12개 프로그램)
 db.exec(`
   CREATE TABLE IF NOT EXISTS irrigation_program (
     id INTEGER PRIMARY KEY,

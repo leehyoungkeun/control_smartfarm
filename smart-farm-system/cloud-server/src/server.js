@@ -36,6 +36,10 @@ async function start() {
       console.warn('⚠️  MQTT 브릿지 초기화 실패 (인증서 없이 계속 실행):', mqttError.message);
     }
 
+    // 3-1. 경보 이메일 알림 서비스 등록 (MQTT 연결과 무관하게 등록)
+    require('./services/alarmNotifier');
+    console.log('✅ 경보 알림 서비스 등록 완료');
+
     // 4. 오프라인 모니터 시작
     startOfflineMonitor();
     console.log('✅ 오프라인 모니터 시작');

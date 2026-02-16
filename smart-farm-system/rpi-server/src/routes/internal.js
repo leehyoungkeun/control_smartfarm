@@ -4,7 +4,7 @@
  * 센서 데이터 수신, 상태 업데이트, 경보 등록, 설정/프로그램 조회
  */
 const router = require('express').Router();
-const { SensorData, SystemConfig, AlarmLog, IrrigationProgram, ValveConfig, DailySummary } = require('../models');
+const { SensorData, SystemConfig, AlarmLog, IrrigationProgram, ValveConfig, DailySummary, DailyValveFlow } = require('../models');
 const sensorCache = require('../services/sensorCache');
 const alarmService = require('../services/alarmService');
 
@@ -197,6 +197,19 @@ router.post('/daily-summary', (req, res) => {
           total_supply_liters: stat.total_flow || 0,
           total_drain_liters: 0,
         });
+
+        // 밸브별 유량 저장
+        if (Array.isArray(stat.valve_flows)) {
+          for (const vf of stat.valve_flows) {
+            DailyValveFlow.upsert({
+              summary_date: date,
+              program_number: stat.program_id || 0,
+              valve_number: vf.valve_number,
+              total_flow_liters: vf.flow_liters || 0,
+              run_count: vf.run_count || 1,
+            });
+          }
+        }
       }
     }
 

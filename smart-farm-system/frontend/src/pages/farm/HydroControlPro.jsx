@@ -318,6 +318,34 @@ export default function HydroControlPro(){
           setL(p=>({...p,iLog:logs}));
         }
       }catch(e){console.error('일일집계 로드 실패:',e);}
+      // 환경설정 DB에서 복원
+      try{
+        const cfg=await configApi.get(farmId);
+        if(cfg){
+          const defaultTanks=[
+            {id:"A",name:"A액 (질소·칼슘)",c:P.cyan,on:true},{id:"B",name:"B액 (인·칼륨·마그)",c:P.green,on:true},
+            {id:"C",name:"C액 (미량원소)",c:P.violet,on:true},{id:"D",name:"D액 (보조영양)",c:P.amber,on:true},
+            {id:"산",name:"산 (pH 하강)",c:P.red,on:true},{id:"F",name:"알칼리 (pH 상승)",c:P.rose,on:true},
+            {id:"G",name:"미량원소2",c:P.blue,on:false},{id:"H",name:"킬레이트철",c:P.orange,on:false},
+            {id:"I",name:"규산칼륨",c:P.teal,on:false},{id:"J",name:"세정제",c:P.t2,on:false}];
+          let tanks=defaultTanks;
+          try{const parsed=JSON.parse(cfg.tank_config);if(Array.isArray(parsed)&&parsed.length>0)tanks=parsed;}catch{}
+          setEnv(prev=>({...prev,
+            ahEC:cfg.alarm_ec_upper??prev.ahEC, alEC:cfg.alarm_ec_lower??prev.alEC,
+            ahPH:cfg.alarm_ph_upper??prev.ahPH, alPH:cfg.alarm_ph_lower??prev.alPH,
+            olEC:cfg.operation_ec_lower??prev.olEC, olPH:cfg.operation_ph_lower??prev.olPH,
+            scenarioCount:cfg.scenario_count??prev.scenarioCount,
+            auto:cfg.auto_supply!=null?!!cfg.auto_supply:prev.auto,
+            bulkEC:cfg.bulk_ec_threshold??prev.bulkEC, bulkPH:cfg.bulk_ph_threshold??prev.bulkPH,
+            dbEC:cfg.deadband_ec??prev.dbEC, dbPH:cfg.deadband_ph??prev.dbPH,
+            tankCount:cfg.tank_count??prev.tankCount, valveCount:cfg.valve_count??prev.valveCount,
+            tanks, acid:cfg.acid_type??prev.acid, flowU:cfg.flow_unit??prev.flowU,
+            minS:cfg.min_solar_radiation??prev.minS,
+            agOn:cfg.agitator_on_time??prev.agOn, agOff:cfg.agitator_off_time??prev.agOff,
+            tR:cfg.raw_water_temp_setting??prev.tR, tO:cfg.outdoor_temp_setting??prev.tO,
+          }));
+        }
+      }catch(e){console.error('환경설정 로드 실패:',e);}
     };
     load();
   },[farmId]);
@@ -374,7 +402,24 @@ export default function HydroControlPro(){
     }catch(e){showToast('저장 실패: '+e.message,'error');}};
 
   const handleSaveConfig=async()=>{
-    try{const data={set_ec:parseFloat(env.ahEC)||4.0,set_ph:parseFloat(env.ahPH)||8.0};
+    try{const data={
+      // 경보 임계값
+      alarm_ec_upper:parseFloat(env.ahEC)||3.5, alarm_ec_lower:parseFloat(env.alEC)||0.3,
+      alarm_ph_upper:parseFloat(env.ahPH)||8.5, alarm_ph_lower:parseFloat(env.alPH)||4.5,
+      operation_ec_lower:parseFloat(env.olEC)||0.1, operation_ph_lower:parseFloat(env.olPH)||6.5,
+      // 양액제어
+      scenario_count:env.scenarioCount, auto_supply:env.auto?1:0,
+      bulk_ec_threshold:parseFloat(env.bulkEC)||0.5, bulk_ph_threshold:parseFloat(env.bulkPH)||0.5,
+      deadband_ec:parseFloat(env.dbEC)||0.05, deadband_ph:parseFloat(env.dbPH)||0.05,
+      // 하드웨어
+      tank_count:env.tankCount, valve_count:env.valveCount,
+      tank_config:JSON.stringify(env.tanks),
+      // 설비/시스템
+      acid_type:env.acid, flow_unit:env.flowU,
+      min_solar_radiation:parseFloat(env.minS)||50,
+      agitator_on_time:env.agOn, agitator_off_time:env.agOff,
+      raw_water_temp_setting:parseFloat(env.tR)||0, outdoor_temp_setting:parseFloat(env.tO)||0,
+    };
       await configApi.update(farmId,data);showToast('환경설정 저장');
     }catch(e){showToast('저장 실패: '+e.message,'error');}};
 
