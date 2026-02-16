@@ -4,7 +4,7 @@
  * 센서 데이터 수신, 상태 업데이트, 경보 등록, 설정/프로그램 조회
  */
 const router = require('express').Router();
-const { SensorData, SystemConfig, AlarmLog, IrrigationProgram, ValveConfig, DailySummary, DailyValveFlow } = require('../models');
+const { SensorData, SystemConfig, AlarmLog, IrrigationProgram, ValveConfig, DailySummary } = require('../models');
 const sensorCache = require('../services/sensorCache');
 const alarmService = require('../services/alarmService');
 

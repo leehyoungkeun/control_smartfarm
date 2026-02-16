@@ -5,7 +5,7 @@
 module.exports = {
   // 하드웨어 설정
   VALVE_COUNT: 14,
-  PROGRAM_COUNT: 6,
+  PROGRAM_COUNT: 12,
   TANK_COUNT: 7, // A~F + acid
 
   // 사용자 역할

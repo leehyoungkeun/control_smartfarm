@@ -201,18 +201,18 @@ db.exec(`
 // 시스템 설정 기본 행 삽입 (id=1, 이미 존재하면 무시)
 db.prepare('INSERT OR IGNORE INTO system_config (id) VALUES (1)').run();
 
-// 관수 프로그램 6개 기본 삽입
+// 관수 프로그램 12개 기본 삽입
 const insertProgram = db.prepare(
   'INSERT OR IGNORE INTO irrigation_program (program_number) VALUES (@program_number)'
 );
 const insertProgramsTransaction = db.transaction(() => {
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 12; i++) {
     insertProgram.run({ program_number: i });
   }
 });
 insertProgramsTransaction();
 
-// 밸브 설정 84행 기본 삽입 (6 프로그램 x 14 밸브)
+// 밸브 설정 기본 삽입 (12 프로그램 x 14 밸브)
 const insertValve = db.prepare(
   'INSERT OR IGNORE INTO valve_config (program_id, valve_number) VALUES (@program_id, @valve_number)'
 );

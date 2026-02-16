@@ -16,7 +16,7 @@ export const LOCAL_WS_URL = import.meta.env.VITE_LOCAL_WS_URL || 'ws://localhost
 
 // 밸브/프로그램/탱크
 export const VALVE_COUNT = 14;
-export const PROGRAM_COUNT = 6;
+export const PROGRAM_COUNT = 12;
 export const TANK_COUNT = 7;
 
 // 역할 라벨
