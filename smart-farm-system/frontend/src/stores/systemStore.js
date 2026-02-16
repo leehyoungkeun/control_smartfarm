@@ -65,7 +65,13 @@ const useSystemStore = create((set) => ({
       dissolvedOxygen: data.dissolved_oxygen,
       co2Level: data.co2_level,
     },
-    valveStates: data.latestSensors?.valveStates || Array(14).fill(false),
+    // current_valve에서 밸브 상태 배열 생성 (활성 밸브만 true)
+    valveStates: (() => {
+      const states = Array(14).fill(false);
+      const cv = data.current_valve;
+      if (cv >= 1 && cv <= 14) states[cv - 1] = true;
+      return states;
+    })(),
     tankLevels: data.latestSensors?.tankLevels || [0, 0, 0, 0, 0, 0, 0],
     activeAlarms: data.activeAlarms || [],
     lastUpdated: new Date().toISOString(),

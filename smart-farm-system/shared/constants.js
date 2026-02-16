@@ -62,6 +62,8 @@ module.exports = {
     STOPPED: 'STOPPED',
     EMERGENCY: 'EMERGENCY',
     PAUSED: 'PAUSED',
+    IRRIGATING: 'IRRIGATING',
+    MANUAL: 'MANUAL',
   },
 
   // 농장 상태

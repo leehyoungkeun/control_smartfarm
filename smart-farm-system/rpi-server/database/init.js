@@ -68,6 +68,15 @@ addColumn('system_config', 'humidity', 'REAL', '0');
 addColumn('system_config', 'water_temp', 'REAL', '0');
 addColumn('system_config', 'dissolved_oxygen', 'REAL', '0');
 addColumn('system_config', 'current_valve', 'INTEGER', '0');
+addColumn('system_config', 'raw_water_pump', 'INTEGER', '0');
+
+// 경보 임계값 컬럼
+addColumn('system_config', 'alarm_ec_upper', 'REAL', '3.5');
+addColumn('system_config', 'alarm_ec_lower', 'REAL', '0.3');
+addColumn('system_config', 'alarm_ph_upper', 'REAL', '8.5');
+addColumn('system_config', 'alarm_ph_lower', 'REAL', '4.5');
+addColumn('system_config', 'alarm_temp_upper', 'REAL', '40');
+addColumn('system_config', 'alarm_temp_lower', 'REAL', '5');
 
 // 관수 프로그램 테이블 (6개 프로그램)
 db.exec(`
