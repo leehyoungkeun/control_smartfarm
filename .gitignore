@@ -18,6 +18,7 @@ data/
 
 # AWS IoT 인증서
 certs/
+crrts/
 *.pem
 *.pem.crt
 *.pem.key
@@ -25,6 +26,7 @@ certs/
 # IDE
 .vscode/
 .idea/
+.claude/
 
 # OS
 .DS_Store
@@ -33,6 +35,13 @@ Thumbs.db
 # 로그
 logs/
 *.log
+
+# Vite 캐시
+.vite/
+
+# 이미지/스크린샷
+*.PNG
+*.png
 
 # Node-RED
 node-red/.node-red/

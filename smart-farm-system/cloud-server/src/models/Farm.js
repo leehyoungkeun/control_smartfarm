@@ -42,6 +42,10 @@ module.exports = (sequelize, DataTypes) => {
     config_json: {
       type: DataTypes.JSONB,
     },
+    latest_sensor_data: {
+      type: DataTypes.JSONB,
+      comment: 'RPi HTTP 전송 최신 센서 스냅샷 (60초 주기)',
+    },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

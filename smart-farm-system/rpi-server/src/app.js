@@ -20,8 +20,8 @@ app.use(cors());
 app.use(morgan('short'));
 app.use(express.json());
 
-// 정적 파일 서빙 (터치패널용 프론트엔드)
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+// 정적 파일 서빙 (터치패널용 프론트엔드, 빌드 결과물은 ../public에 배포)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // API 라우트
 app.use('/api', routes);
@@ -34,7 +34,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().
 
 // SPA 폴백 (터치패널)
 app.get('{*path}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // 404 처리 — 등록되지 않은 경로 (POST/PUT/DELETE 등)

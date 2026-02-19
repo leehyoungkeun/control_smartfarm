@@ -1,16 +1,26 @@
 /**
  * 일일 동기화 서비스
- * 매일 00:05에 전일 일일 집계를 사무실 서버로 전송
- * DailySummary 및 DailyValveFlow 데이터를 MQTT를 통해 발행
+ * 매일 00:05에 전일 일일 집계를 사무실 서버로 HTTP POST 직접 전송
+ * (MQTT 경유 → HTTP 직접 전송으로 변경, AWS IoT 비용 절감)
+ *
+ * HTTP 전송 실패 시 최대 3회 재시도 (30초 간격)
  */
-const { publish, getFarmTopics, getConnectionStatus } = require('./mqttService');
 const { db, DailySummary, DailyValveFlow, SensorData, AlarmLog } = require('../models');
 
 // 데이터 보관 기간 (일)
 const SENSOR_RETENTION_DAYS = 30;  // 센서 데이터: 30일
 const ALARM_RETENTION_DAYS = 90;   // 알람 로그: 90일
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 30 * 1000;  // 재시도 간격 30초
+const REQUEST_TIMEOUT_MS = 15 * 1000; // HTTP 타임아웃 15초
+
 let timeoutId = null;
+
+// 환경변수에서 설정 읽기
+const CLOUD_SERVER_URL = process.env.CLOUD_SERVER_URL;
+const CLOUD_API_SECRET = process.env.CLOUD_API_SECRET;
+const FARM_ID = process.env.AWS_IOT_CLIENT_ID || 'MyFarmPi_01';
 
 /**
  * 일일 동기화 서비스 시작
@@ -19,7 +29,7 @@ let timeoutId = null;
 function startDailySync() {
   try {
     scheduleNextSync();
-    console.log('일일 동기화 서비스 시작');
+    console.log('일일 동기화 서비스 시작 (HTTP 직접 전송)');
   } catch (error) {
     console.error('일일 동기화 서비스 시작 오류:', error);
   }
@@ -75,14 +85,9 @@ function scheduleNextSync() {
 
 /**
  * 전일 일일 집계 동기화
- * 전일 날짜의 DailySummary와 DailyValveFlow를 조회하여 MQTT로 발행
+ * HTTP POST로 사무실 서버에 직접 전송 (AWS IoT 미사용)
  */
 async function syncDailySummary() {
-  if (!getConnectionStatus()) {
-    console.warn('MQTT 미연결 — 일일 동기화 스킵');
-    return;
-  }
-
   try {
     // 전일 날짜 계산
     const yesterday = new Date();
@@ -94,13 +99,13 @@ async function syncDailySummary() {
 
     if (summaries.length === 0) {
       console.log(`일일 동기화: ${dateStr} 데이터 없음`);
+      cleanupOldData();
       return;
     }
 
-    const farmTopics = getFarmTopics();
-
-    // 일일 집계 데이터를 프로그램별로 정리하여 발행
-    await publish(farmTopics.dailySummary, {
+    // 일일 집계 데이터를 프로그램별로 정리
+    const payload = {
+      farmId: FARM_ID,
       date: dateStr,
       summaries: summaries.map(s => ({
         summaryDate: s.summary_date,
@@ -112,7 +117,6 @@ async function syncDailySummary() {
         avgPh: s.avg_ph,
         totalSupplyLiters: s.total_supply_liters,
         totalDrainLiters: s.total_drain_liters,
-        // 해당 프로그램의 밸브별 유량 데이터 포함
         valveFlows: valveFlows
           .filter(v => v.program_number === s.program_number)
           .map(v => ({
@@ -122,15 +126,68 @@ async function syncDailySummary() {
           })),
       })),
       timestamp: Date.now(),
-    });
+    };
 
-    console.log(`일일 동기화 완료: ${dateStr} (${summaries.length}개 프로그램)`);
+    // HTTP 전송 (재시도 포함)
+    if (CLOUD_SERVER_URL) {
+      const success = await sendWithRetry(payload);
+      if (success) {
+        console.log(`일일 동기화 완료 (HTTP): ${dateStr} (${summaries.length}개 프로그램)`);
+      } else {
+        console.error(`일일 동기화 실패 (HTTP): ${dateStr} — ${MAX_RETRIES}회 재시도 후 포기`);
+      }
+    } else {
+      console.warn('CLOUD_SERVER_URL 미설정 — 일일 동기화 로컬만 저장');
+    }
 
     // 오래된 데이터 자동 정리
     cleanupOldData();
   } catch (error) {
     console.error('일일 동기화 오류:', error);
   }
+}
+
+/**
+ * HTTP POST로 사무실 서버에 전송 (최대 MAX_RETRIES회 재시도)
+ * @param {object} payload - 전송할 데이터
+ * @returns {boolean} 최종 성공 여부
+ */
+async function sendWithRetry(payload) {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const url = `${CLOUD_SERVER_URL}/api/rpi-ingest/daily-summary`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Farm-Id': FARM_ID,
+          'X-Api-Secret': CLOUD_API_SECRET || '',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        return true;
+      }
+      console.warn(`일일 동기화 전송 실패 (시도 ${attempt}/${MAX_RETRIES}): ${response.status}`);
+    } catch (error) {
+      const msg = error.name === 'AbortError' ? '타임아웃' : error.message;
+      console.warn(`일일 동기화 전송 오류 (시도 ${attempt}/${MAX_RETRIES}): ${msg}`);
+    }
+
+    // 마지막 시도가 아니면 대기 후 재시도
+    if (attempt < MAX_RETRIES) {
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+  return false;
 }
 
 /**

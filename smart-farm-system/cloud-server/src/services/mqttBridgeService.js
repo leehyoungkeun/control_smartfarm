@@ -5,7 +5,7 @@
  */
 const { mqtt, iot } = require('aws-iot-device-sdk-v2');
 const { serverSubscriptions, extractFarmId } = require('../../../shared/mqttTopics');
-const { Farm, AlarmHistory, DailySummaryArchive, ControlLog } = require('../models');
+const { Farm, AlarmHistory, ControlLog } = require('../models');
 
 // MQTT 연결 인스턴스
 let mqttConnection = null;
@@ -67,12 +67,11 @@ async function initMqttBridge() {
         console.log('AWS IoT Core MQTT 연결 성공');
 
         // 서버 구독 토픽 와일드카드 구독
+        // (daily-summary, heartbeat는 HTTP 직접 전송으로 전환됨)
         for (const topic of serverSubscriptions) {
           await mqttConnection.subscribe(topic, mqtt.QoS.AtLeastOnce);
           console.log(`  구독: ${topic}`);
         }
-        // 하트비트 토픽 구독
-        await mqttConnection.subscribe('farm/+/heartbeat', mqtt.QoS.AtLeastOnce);
       } catch (error) {
         console.error('MQTT 토픽 구독 오류:', error);
       }
@@ -153,33 +152,8 @@ async function handleMessage(topic, farmThingName, data) {
       }
       if (wsService) wsService.broadcastToFarm(farm.id, 'command_ack', data);
 
-    } else if (topic.endsWith('/daily-summary')) {
-      // 일간 요약 → DB 저장 (upsert로 중복 방지)
-      if (Array.isArray(data.summaries)) {
-        for (const s of data.summaries) {
-          await DailySummaryArchive.upsert({
-            farm_id: farm.id,
-            summary_date: s.summaryDate,
-            program_number: s.programNumber,
-            run_count: s.runCount,
-            set_ec: s.setEc,
-            set_ph: s.setPh,
-            avg_ec: s.avgEc,
-            avg_ph: s.avgPh,
-            total_supply_liters: s.totalSupplyLiters,
-            total_drain_liters: s.totalDrainLiters,
-            valve_flows: s.valveFlows,
-          });
-        }
-      }
-
-    } else if (topic.endsWith('/heartbeat')) {
-      // 하트비트 → 최종 온라인 시각 업데이트
-      await Farm.update(
-        { last_online_at: new Date() },
-        { where: { id: farm.id } }
-      );
     }
+    // daily-summary, heartbeat는 HTTP 직접 전송으로 전환 (POST /api/rpi-ingest)
   } catch (error) {
     console.error('메시지 핸들링 오류:', error);
   }

@@ -54,6 +54,12 @@ services:
     volumes:
       # AWS IoT Core 인증서 마운트 (호스트의 certs 디렉토리)
       - ${AWS_IOT_CERTS_DIR:-./certs}:/app/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - smartfarm-net
 
@@ -69,7 +75,14 @@ services:
     ports:
       - "${FRONTEND_PORT:-80}:80"
     depends_on:
-      - cloud-server
+      cloud-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - smartfarm-net
 

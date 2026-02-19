@@ -6,6 +6,10 @@
 const router = require('express').Router({ mergeParams: true });
 const { Op } = require('sequelize');
 const { Farm, User, AlarmHistory } = require('../models');
+const { requireRole } = require('../middleware/roleCheck');
+
+// 관리자 전용 — viewer/operator 접근 차단
+router.use(requireRole('admin'));
 
 /**
  * GET /overview

@@ -29,6 +29,9 @@ app.use(morgan('combined'));
 // JSON 본문 파싱 (최대 10MB)
 app.use(express.json({ limit: '10mb' }));
 
+// RPi 직접 전송 라우트 (JWT 인증 아님, X-Api-Secret 인증)
+app.use('/api/rpi-ingest', require('./routes/rpiIngest'));
+
 // API 라우트
 app.use('/api', routes);
 

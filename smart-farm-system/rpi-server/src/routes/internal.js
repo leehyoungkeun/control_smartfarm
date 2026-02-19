@@ -86,6 +86,7 @@ router.post('/status-update', (req, res) => {
 /**
  * POST /internal/alarm
  * Node-RED에서 경보 등록
+ * DB 저장 + AWS IoT MQTT로 사무실 서버에 알림 전달
  */
 router.post('/alarm', (req, res) => {
   try {
@@ -93,6 +94,22 @@ router.post('/alarm', (req, res) => {
 
     // 경보 데이터 DB에 저장
     AlarmLog.insert({ alarm_type, alarm_value, threshold_value, message });
+
+    // MQTT로 사무실 서버에 알림 전달 (정책: 알람은 AWS IoT 경유)
+    const { publish, getFarmTopics, getConnectionStatus } = require('../services/mqttService');
+    if (getConnectionStatus()) {
+      const farmTopics = getFarmTopics();
+      // 알람 시점의 센서값도 포함하여 전송 (타이밍 역전 방지)
+      const sensorSnapshot = sensorCache.getLatest();
+      publish(farmTopics.alarm, {
+        alarmType: alarm_type,
+        alarmValue: alarm_value,
+        thresholdValue: threshold_value,
+        message,
+        sensorSnapshot,
+        timestamp: Date.now(),
+      });
+    }
 
     res.json({ success: true });
   } catch (error) {

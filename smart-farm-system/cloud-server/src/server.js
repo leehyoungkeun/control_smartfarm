@@ -10,6 +10,12 @@ const { initFarmWsService } = require('./services/farmWsService');
 const { initMqttBridge } = require('./services/mqttBridgeService');
 const { startOfflineMonitor } = require('./services/offlineMonitor');
 
+// JWT_SECRET 필수 검증
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your_jwt_secret_change_this') {
+  console.error('❌ JWT_SECRET 환경변수가 설정되지 않았거나 기본값입니다. .env 파일을 확인하세요.');
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 

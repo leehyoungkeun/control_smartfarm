@@ -1,15 +1,21 @@
 /**
  * RPi 서버 진입점
- * HTTP 서버 시작, WebSocket, MQTT, 하트비트, 일일동기화 초기화
+ * HTTP 서버 시작, WebSocket, MQTT, 센서 HTTP 전송, 일일동기화 초기화
  */
 require('dotenv').config();
 const http = require('http');
 const app = require('./app');
 const { initWsService } = require('./services/wsService');
 const { initMqttService } = require('./services/mqttService');
-const { startHeartbeat, stopHeartbeat } = require('./services/heartbeatService');
+const { startSensorPush, stopSensorPush } = require('./services/sensorHttpPushService');
 const { startDailySync, stopDailySync } = require('./services/dailySyncService');
 const { db } = require('./models');
+
+// JWT_SECRET 필수 검증
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your_local_jwt_secret') {
+  console.error('❌ JWT_SECRET 환경변수가 설정되지 않았거나 기본값입니다. .env 파일을 확인하세요.');
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
@@ -32,9 +38,9 @@ async function start() {
     require('./services/publisherService');
     console.log('✅ 텔레메트리 발행 서비스 등록 완료');
 
-    // 3. 하트비트 서비스 시작 (60초마다)
-    startHeartbeat();
-    console.log('✅ 하트비트 서비스 시작');
+    // 3. 센서 HTTP 전송 서비스 시작 (60초마다 → 사무실 서버 직접 전송, 하트비트 겸용)
+    startSensorPush();
+    console.log('✅ 센서 HTTP 전송 서비스 시작');
 
     // 4. 일일 동기화 서비스 시작
     startDailySync();
@@ -60,7 +66,7 @@ function shutdown(signal) {
   console.log(`\n${signal} 수신 — 서버 종료 중...`);
 
   // 1. 스케줄 서비스 중지
-  stopHeartbeat();
+  stopSensorPush();
   stopDailySync();
 
   // 2. HTTP 서버 종료 (새 연결 거부, 기존 연결 완료 대기)
